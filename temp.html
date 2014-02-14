@@ -1,0 +1,215 @@
+<html>
+<head>
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="//d23cj0cdvyoxg0.cloudfront.net/xivelyjs-1.0.4.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/dygraph/1.0.1/dygraph-combined.js"></script>
+<script type="text/javascript" src="//bernii.github.io/gauge.js/dist/gauge.min.js"></script>
+</head>
+<body>
+<div style="width:900px;">
+<div id="gaugediv1" style="width:200px; float:left;" >
+<canvas id="gauge1" style="width:200px; margin:0 auto; clear:left"></canvas>
+<div id="gauge1-val" style="font-size:30px; text-align:center; width:200px; margin:0 auto; clear:left;"></div>
+</div>
+<div id="gaugediv2" style="width:200px; float:left;" >
+<canvas id="gauge2" style="width:200px; margin:0 auto; clear:left"></canvas>
+<div id="gauge2-val" style="font-size:30px; text-align:center; width:200px; margin:0 auto; clear:left;"></div>
+</div>
+<div id="gaugediv3" style="width:200px; float:left;" >
+<canvas id="gauge3" style="width:200px; margin:0 auto; clear:left"></canvas>
+<div id="gauge3-val" style="font-size:30px; text-align:center; width:200px; margin:0 auto; clear:left;"></div>
+</div>
+<div id="graphdiv" style="height:300px; clear:both;" ></div>
+<div id="labelsdiv" style="clear:both; float:right;"></div>
+</div>
+<script type="text/javascript">
+  xively.setKey('ja2K2cP4k9SnfQMzWj1CgIHzgNKP7Ss5ud23BbD2qXJYzA8M');
+  function update_data() {
+    xively.datastream.get( "60754","0", function( data ) {
+      dt=new Date(data.at);
+      if ( $.grep(d,function(v) { return (v[0].getTime()===dt.getTime()); }).length <=0 ) {
+      //  console.log(dt+' skipped, already in');
+      //}else {
+        //console.log(dt+' added');
+        val=Number(data.current_value)/10;
+        if (val >85 || val <-120) { val=NaN; }
+        $("#gauge1-val").html("External<br>"+String(val));
+        gauge1.set(val);
+        d.push([dt,val,null,null]);
+        d.sort(function(a,b) {
+           return a[0].getTime()-b[0].getTime();
+        });
+        g.updateOptions( { 'file': d } );
+      };
+
+    });
+  var url = "https://api.thingspeak.com/channels/2102/feed/last.json";
+  $.getJSON(url + "?callback=?", null, function(thingData) {
+    dt=new Date(thingData.created_at);
+    if ( $.grep(d,function(v) { return (v[0].getTime()===dt.getTime()); }).length <=0 ) {
+      //console.log('Internal added '+dt+' '+Number(thingData.field1));
+      val=Number(thingData.field1);
+      if (val >85 || val <-120) { val=NaN; };
+      $("#gauge2-val").html("Internal<br>"+String(val));
+      gauge2.set(val);
+      d.push([dt,null,val,null]);
+      d.sort(function(a,b) {
+         return a[0].getTime()-b[0].getTime();
+      });
+      g.updateOptions( { 'file': d } );
+    } 
+  });
+  var url = "https://api.thingspeak.com/channels/10042/feed/last.json";
+  $.getJSON(url + "?callback=?", null, function(thingData) {
+    dt=new Date(thingData.created_at);
+    if ( $.grep(d,function(v) { return (v[0].getTime()===dt.getTime()); }).length <=0 ) {
+      //console.log('CPU added '+dt+' '+Number(thingData.field4));
+      $("#gauge3-val").html("CPU<br>"+thingData.field4);
+      gauge3.set(val);
+      d.push([dt,null,null,Number(thingData.field4)]);
+      d.sort(function(a,b) {
+         return a[0].getTime()-b[0].getTime();
+      });
+      g.updateOptions( { 'file': d } );
+    } 
+  });
+  };
+
+  $(document).ready(function () {
+  d=[];
+  g = new Dygraph(
+    // containing div
+    document.getElementById("graphdiv"), d , 
+      { labels: ["Date","External","Internal","CPU"],
+        labelsDiv: document.getElementById('labelsdiv'),
+        connectSeparatedPoints: true,
+        title: "Past Temperature",
+        ylabel: "Temp (C)",
+        legend: "always",
+
+        showRangeSelector: true
+
+      });
+  gauge_opts={
+  lines: 12, // The number of lines to draw
+  angle: 0.15, // The length of each line
+  lineWidth: 0.44, // The line thickness
+  pointer: {
+    length: 0.8, // The radius of the inner circle
+    strokeWidth: 0.035, // The rotation offset
+    color: '#000000' // Fill color
+  },
+  limitMax: 'false',   // If true, the pointer will not go past the end of the gauge
+
+  colorStart: '#6FADCF',   // Colors
+  colorStop: '#8FC0DA',    // just experiment with them
+  strokeColor: '#E0E0E0',   // to see which ones work best for you
+  generateGradient: true
+  };
+  gauge1=new Gauge(document.getElementById("gauge1")).setOptions(gauge_opts);  
+  gauge1.maxValue = 50;
+  //gauge1.animationSpeed = 32;
+  gauge1.set(30);
+  $("#gauge1-val").html("External<br>");
+  gauge2=new Gauge(document.getElementById("gauge2")).setOptions(gauge_opts);  
+  gauge2.maxValue = 50;
+  //gauge.animationSpeed = 32;
+  gauge2.set(30);
+  $("#gauge2-val").html("Internal<br>");
+  gauge3=new Gauge(document.getElementById("gauge3")).setOptions(gauge_opts);  
+  gauge3.maxValue = 70;
+  //gauge.animationSpeed = 32;
+  gauge3.set(30);
+  $("#gauge3-val").html("CPU<br>");
+  
+  });
+  //xively API only allows 6 hours of data
+  xively.datastream.history( "60754","0", {duration: "6hours" , interval: 300}, function( data ) {
+    for (var item in data.datapoints) {
+      dt=new Date(data.datapoints[item].at);
+      //newrow=[d,undefined,undefined,Number(data.datapoints[item].value)/10];
+      //chartdata.addRow(newrow);
+      val=Number(data.datapoints[item].value)/10;
+      if (val >85 || val <-120) { val=NaN; }
+      d.push([dt,val,null,null]);
+    };
+    gauge1.set(Number(data.datapoints[data.datapoints.length-1].value)/10);
+    $("#gauge1-val").html("External<br>"+String(Number(data.datapoints[data.datapoints.length-1].value)/10));
+    //d.sort(function(a,b) {
+    //   return a[0].getTime()-b[0].getTime();
+    //});
+    //g.updateOptions( { 'file': d } );
+    xively.datastream.history( "60754","0", {end:  data.datapoints[0].at, duration: "6hours" , interval: 300}, function( data ) {
+      for (var item in data.datapoints) {
+	dt=new Date(data.datapoints[item].at);
+        val=Number(data.datapoints[item].value)/10;
+        if (val >85 || val <-120) { val=NaN; }
+	d.push([dt,val,null,null]);
+      };
+      //d.sort(function(a,b) {
+	// return a[0].getTime()-b[0].getTime();
+      //});
+      //g.updateOptions( { 'file': d } );
+
+      xively.datastream.history( "60754","0", {end:  data.datapoints[0].at, duration: "6hours" , interval: 300}, function( data ) {
+	for (var item in data.datapoints) {
+	  dt=new Date(data.datapoints[item].at);
+          val=Number(data.datapoints[item].value)/10;
+          if (val >85 || val <-120) { val=NaN; }
+	  d.push([dt,val,null,null]);
+	};
+	//d.sort(function(a,b) {
+	//   return a[0].getTime()-b[0].getTime();
+	//});
+	//g.updateOptions( { 'file': d } );
+	xively.datastream.history( "60754","0", {end:  data.datapoints[0].at, duration: "6hours" , interval: 300}, function( data ) {
+	  for (var item in data.datapoints) {
+	    dt=new Date(data.datapoints[item].at);
+            val=Number(data.datapoints[item].value)/10;
+            if (val >85 || val <-120) { val=NaN; }
+	    d.push([dt,val,null,null]);
+	  };
+	  d.sort(function(a,b) {
+	     return a[0].getTime()-b[0].getTime();
+	  });
+	  g.updateOptions( { 'file': d } );
+
+      });
+
+    });
+
+    });
+  });
+
+  var url = "https://api.thingspeak.com/channels/2102/feed.json?days=1";
+  $.getJSON(url + "&callback=?", null, function(thingData) {
+    for (var item in thingData.feeds) {
+      dt=new Date(thingData.feeds[item].created_at);
+      val=Number(thingData.feeds[item].field1);
+      if (val >85 || val <-120) { val=NaN; };
+      d.push([dt,null,val,null]);
+    };
+    gauge2.set(Number(thingData.feeds[thingData.feeds.length-1].field1));
+    $("#gauge2-val").html("Internal<br>"+thingData.feeds[thingData.feeds.length-1].field1);
+    d.sort(function(a,b) {
+       return a[0].getTime()-b[0].getTime();
+    });
+    g.updateOptions( { 'file': d } );
+  });
+  var url = "https://api.thingspeak.com/channels/10042/feed.json?days=1";
+  $.getJSON(url + "&callback=?", null, function(thingData) {
+    for (var item in thingData.feeds) {
+      dt=new Date(thingData.feeds[item].created_at);
+      d.push([dt,null,null,Number(thingData.feeds[item].field4)]);
+    };
+    gauge3.set(Number(thingData.feeds[thingData.feeds.length-1].field4));
+    $("#gauge3-val").html("CPU<br>"+thingData.feeds[thingData.feeds.length-1].field4);
+    d.sort(function(a,b) {
+       return a[0].getTime()-b[0].getTime();
+    });
+    g.updateOptions( { 'file': d } );
+  });
+  setInterval(update_data,60000);
+</script>
+</body>
+</html>
