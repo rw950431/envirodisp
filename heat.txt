@@ -1,0 +1,15 @@
+Ideas for HWS consumption chart
+
+Xively hourly data for last week  https://xively.com/dev/docs/api/quick_reference/historical_data/  
+(need to set limit=168, interval_type=discrete interval=3600)
+
+Use Peter cook Circular Heat chart  http://prcweb.co.uk/circularheatchart/ 
+
+script src=http://prcweb.co.uk/lab/circularheat/js/circularHeatChart.js
+
+<html>
+<head>
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="//d23cj0cdvyoxg0.cloudfront.net/xivelyjs-1.0.4.min.js"></script>
+<script type="text/javascript" src="//prcweb.co.uk/lab/circularheat/js/circularHeatChart.js"></script>
+</head>

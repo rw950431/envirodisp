@@ -1,0 +1,75 @@
+<html>
+<head>
+<link rel="stylesheet" href="//prcweb.co.uk/lab/circularheat/css/style.css"> 
+<link rel="stylesheet" href="//prcweb.co.uk/lab/circularheat/css/svg.css">
+<link rel="stylesheet" href="//yandex.st/highlightjs/7.3/styles/default.min.css">
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="//d23cj0cdvyoxg0.cloudfront.net/xivelyjs-1.0.4.min.js"></script>
+<script type="text/javascript" src="//prcweb.co.uk/lab/circularheat/js/circularHeatChart.js"></script>
+<script type="text/javascript" src="//d3js.org/d3.v3.min.js"></script>
+</head>
+<body>
+<h3>Hourly Temperature Chart</h3>
+<p>
+<div class="chart" id="energychart"></div>
+<div id="info"></div>
+</p>
+<p>Thanks to Peter Cook's <a href="http://prcweb.co.uk/circularheatchart/">Awesome Circular Heat Chart</a></p>
+<script type="text/javascript">
+  xively.setKey('ja2K2cP4k9SnfQMzWj1CgIHzgNKP7Ss5ud23BbD2qXJYzA8M');
+  //xively.setKey('xjM84fRHAgXgMtFxMFqeEbGJmW4MH07XOnne1cbD493fplzz');
+  energyData=[];
+  function load_data() {
+    var start_date=new Date();
+    start_date.setHours(0,0,0,0);
+    start_date.setDate(start_date.getDate()-6); // midnight six days ago
+    day_labels=["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    //shuffle order to get right starting day
+    for (var x=0; x<start_date.getDay(); x++) {
+       var t=day_labels.shift();
+       day_labels.push(t);
+    };
+    //console.log(day_labels);
+    xively.datastream.history( "60754","0",{start: start_date  , interval: 3600, interval_type: "discrete", limit: 168 }, function( data ) {
+    //xively.datastream.history( "63465","1",{start: start_date  , interval: 3600, interval_type: "discrete", limit: 168 }, function( data ) {
+        var i=0;
+        for (var item in data.datapoints) {
+            dt=new Date(data.datapoints[item].at);
+            n=Number(data.datapoints[item].value)/10;
+            //console.log(dt+':'+n);
+            if (n>-120 && n <80) energyData[item]={title: dt.toLocaleString(), value: n};
+            i=i+1;
+               //console.log(item+'='+n);
+            //};
+      };
+
+    //console.log(energyData)
+    var chart = circularHeatChart()
+    .innerRadius(20)
+    .radialLabels(day_labels)
+    .segmentLabels(["Midnight", "1am", "2am", "3am", "4am", "5am", "6am", "7am", "8am", "9am", "10am", "11am", "Midday", "1pm", "2pm", "3pm", "4pm", "5pm", "6pm", "7pm", "8pm", "9pm", "10pm", "11pm"]);
+
+    chart.accessor(function(d) {return d.value;})
+
+    d3.select('#energychart')
+    .selectAll('svg')
+    .data([energyData])
+    .enter()
+    .append('svg')
+    .call(chart);
+
+    d3.selectAll("#energychart path").on('mouseover', function() {
+    var d = d3.select(this).data()[0];
+    $('#info').text(d.title+" "+d.value+" °C");
+
+    });
+  });
+  };
+  $(document).ready(function () {
+    load_data()
+  });
+
+  //setInterval(update_data,60000);
+</script>
+</body>
+</html>
